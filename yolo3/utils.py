@@ -119,3 +119,25 @@ def get_random_data(annotation_line, input_shape, random=True, max_boxes=20, jit
         box_data[:len(box)] = box
 
     return image_data, box_data
+def image_preporcess(image, target_size, gt_boxes=None):
+
+    ih, iw    = target_size
+    h,  w, _  = image.shape
+
+    scale = min(iw/w, ih/h)
+    nw = int(scale * w)
+    nh = int(scale * h)
+    
+    image_resized = cv2.resize(image, (nw, nh), interpolation=cv2.INTER_CUBIC)
+
+    image_paded = np.full(shape=[ih, iw, 3], fill_value=128.0)
+    dw, dh = (iw - nw) // 2, (ih-nh) // 2
+    image_paded[dh:nh+dh, dw:nw+dw, :] = image_resized
+
+    image_paded = np.array(image_paded, dtype='float32')
+    
+    image_paded = image_paded / 255.
+    
+    image_paded = np.expand_dims(image_paded, axis=0)
+
+    return image_paded
