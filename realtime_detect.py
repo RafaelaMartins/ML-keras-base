@@ -1,6 +1,6 @@
 import colorsys
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import tensorflow.compat.v1.keras.backend as K
 import tensorflow as tf
