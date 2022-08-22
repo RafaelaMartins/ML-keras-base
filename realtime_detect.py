@@ -1,7 +1,10 @@
 import colorsys
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-import cv2
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
+import tensorflow.compat.v1.keras.backend as K
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 
 import numpy as np
 from keras import backend as K
@@ -30,7 +33,7 @@ sct = mss.mss()
 # Set monitor size to capture
 monitor = {"top": 40, "left": 0, "width": 1080, "height": 1080}
 
-
+import cv2
 class YOLO(object):
     _defaults = {
         #"model_path": 'logs/ep050-loss21.173-val_loss19.575.h5',
