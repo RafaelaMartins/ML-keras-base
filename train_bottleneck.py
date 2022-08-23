@@ -2,6 +2,8 @@
 Retrain the YOLO model for your own dataset.
 """
 import os
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import numpy as np
 import keras.backend as K
 from keras.layers import Input, Lambda
@@ -14,9 +16,10 @@ from yolo3.utils import get_random_data
 
 
 def _main():
-    annotation_path = 'train.txt'
-    log_dir = 'logs/000/'
-    classes_path = 'model_data/coco_classes.txt'
+    annotation_path = 'train/_annotations.txt'
+    log_dir = 'logs/'
+    #classes_path = 'model_data/coco_classes.txt'
+    classes_path = 'train/_classes.txt'
     anchors_path = 'model_data/yolo_anchors.txt'
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
@@ -48,7 +51,8 @@ def _main():
         # perform bottleneck training
         if not os.path.isfile("bottlenecks.npz"):
             print("calculating bottlenecks")
-            batch_size=8
+            #batch_size=8
+            batch_size=1
             bottlenecks=bottleneck_model.predict_generator(data_generator_wrapper(lines, batch_size, input_shape, anchors, num_classes, random=False, verbose=True),
              steps=(len(lines)//batch_size)+1, max_queue_size=1)
             np.savez("bottlenecks.npz", bot0=bottlenecks[0], bot1=bottlenecks[1], bot2=bottlenecks[2])
@@ -59,7 +63,8 @@ def _main():
         bottlenecks_val=[dict_bot["bot0"][num_train:], dict_bot["bot1"][num_train:], dict_bot["bot2"][num_train:]]
 
         # train last layers with fixed bottleneck features
-        batch_size=8
+        #batch_size=8
+        batch_size=1
         print("Training last layers with bottleneck features")
         print('with {} samples, val on {} samples and batch size {}.'.format(num_train, num_val, batch_size))
         last_layer_model.compile(optimizer='adam', loss={'yolo_loss': lambda y_true, y_pred: y_pred})
@@ -81,7 +86,7 @@ def _main():
                 steps_per_epoch=max(1, num_train//batch_size),
                 validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors, num_classes),
                 validation_steps=max(1, num_val//batch_size),
-                epochs=50,
+                epochs=10,
                 initial_epoch=0,
                 callbacks=[logging, checkpoint])
         model.save_weights(log_dir + 'trained_weights_stage_1.h5')
@@ -94,14 +99,15 @@ def _main():
         model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
         print('Unfreeze all of the layers.')
 
-        batch_size = 4 # note that more GPU memory is required after unfreezing the body
+        #batch_size = 4 # note that more GPU memory is required after unfreezing the body
+        batch_size = 1 # note that more GPU memory is required after unfreezing the body
         print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
         model.fit_generator(data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes),
             steps_per_epoch=max(1, num_train//batch_size),
             validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors, num_classes),
             validation_steps=max(1, num_val//batch_size),
-            epochs=100,
-            initial_epoch=50,
+            epochs=20,
+            initial_epoch=10,
             callbacks=[logging, checkpoint, reduce_lr, early_stopping])
         model.save_weights(log_dir + 'trained_weights_final.h5')
 
